@@ -4,20 +4,20 @@ import com.zsw.simpletomcat.connector.HttpServer;
 import com.zsw.simpletomcat.constant.HttpVersionConstant;
 import com.zsw.simpletomcat.enums.HttpStatusEnum;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletResponse;
+import java.io.*;
+import java.util.Locale;
 
 /**
  * @author zsw
  * @date 2020/07/11 11:51
  */
-public class Response {
+public class Response implements ServletResponse {
 	private static final int BUFFER_SIZE = 1024;
 	Request request;
 	OutputStream output;
-
+	PrintWriter writer;
 	public Response(OutputStream output) {
 		this.output = output;
 	}
@@ -65,11 +65,92 @@ public class Response {
 	 * @param status
 	 * @return
 	 */
-	private byte[] responseToByte(HttpStatusEnum status) {
+	public static byte[] responseToByte(HttpStatusEnum status) {
 		return new StringBuilder().append(HttpVersionConstant.HTTP_1_1).append(" ")
 				.append(status.getStatus()).append(" ")
 				.append(status.getDesc()).append("\r\n\r\n")
 				.toString().getBytes();
 	}
 
+	@Override
+	public String getCharacterEncoding() {
+		return null;
+	}
+
+	@Override
+	public String getContentType() {
+		return null;
+	}
+
+	@Override
+	public ServletOutputStream getOutputStream() throws IOException {
+		return null;
+	}
+
+	@Override
+	public PrintWriter getWriter() throws IOException {
+		// 开启autoFlush，调用 println() 将会刷新输出，但是调用 print() 方法不会
+		writer = new PrintWriter(output,true);
+		return writer;
+	}
+
+	@Override
+	public void setCharacterEncoding(String charset) {
+
+	}
+
+	@Override
+	public void setContentLength(int len) {
+
+	}
+
+	@Override
+	public void setContentLengthLong(long len) {
+
+	}
+
+	@Override
+	public void setContentType(String type) {
+
+	}
+
+	@Override
+	public void setBufferSize(int size) {
+
+	}
+
+	@Override
+	public int getBufferSize() {
+		return 0;
+	}
+
+	@Override
+	public void flushBuffer() throws IOException {
+
+	}
+
+	@Override
+	public void resetBuffer() {
+
+	}
+
+	@Override
+	public boolean isCommitted() {
+		return false;
+	}
+
+	@Override
+	public void reset() {
+
+	}
+
+	@Override
+	public void setLocale(Locale loc) {
+
+	}
+
+	@Override
+	public Locale getLocale() {
+		return null;
+	}
 }

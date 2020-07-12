@@ -2,6 +2,8 @@ package com.zsw.simpletomcat.connector;
 
 import com.zsw.simpletomcat.connector.http.Request;
 import com.zsw.simpletomcat.connector.http.Response;
+import com.zsw.simpletomcat.processor.ServletProcessor;
+import com.zsw.simpletomcat.processor.StaticResourceProcessor;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,7 +30,7 @@ public class HttpServer {
 	private static final String SHUTDOWN_COMMAND = "/SHUTDOWN";
 
 	/**
-	 * 是否接受shutdown命令
+	 * 标识Tomcat是否关闭
 	 */
 	private boolean shutdown = false;
 
@@ -63,7 +65,15 @@ public class HttpServer {
 				// create Response object
 				Response response = new Response(output);
 				response.setRequest(request);
-				response.sendStaticResource();
+
+				// 检查这个request请求的是 静态资源 or servlet
+				if(request.getUri().startsWith("/servlet/")) {
+					ServletProcessor processor = new ServletProcessor();
+					processor.process(request,response);
+				}else{
+					StaticResourceProcessor processor = new StaticResourceProcessor();
+					processor.process(request,response);
+				}
 
 				// close the socket
 				socket.close();
