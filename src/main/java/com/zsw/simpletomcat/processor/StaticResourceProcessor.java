@@ -1,7 +1,7 @@
 package com.zsw.simpletomcat.processor;
 
-import com.zsw.simpletomcat.connector.http.Request;
-import com.zsw.simpletomcat.connector.http.Response;
+import com.zsw.simpletomcat.connector.http.HttpRequest;
+import com.zsw.simpletomcat.connector.http.HttpResponse;
 
 import java.io.IOException;
 
@@ -12,10 +12,12 @@ import java.io.IOException;
  * @date 2020/07/11 16:21
  */
 public class StaticResourceProcessor {
-	public void process(Request request, Response response) {
+	public void process(HttpRequest request, HttpResponse response) {
 		try {
 			response.sendStaticResource();
-		} catch (IOException e) {
+			response.finishResponse();
+		}
+		catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
