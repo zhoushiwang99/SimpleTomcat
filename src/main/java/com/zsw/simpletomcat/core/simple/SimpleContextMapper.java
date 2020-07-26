@@ -1,4 +1,4 @@
-package com.zsw.simpletomcat.core;
+package com.zsw.simpletomcat.core.simple;
 
 import com.zsw.simpletomcat.Container;
 import com.zsw.simpletomcat.Mapper;

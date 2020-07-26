@@ -6,7 +6,7 @@ import com.zsw.simpletomcat.Valve;
 import com.zsw.simpletomcat.Wrapper;
 import com.zsw.simpletomcat.connector.http.HttpConnector;
 import com.zsw.simpletomcat.core.SimpleLoader;
-import com.zsw.simpletomcat.core.SimpleWrapper;
+import com.zsw.simpletomcat.core.simple.SimpleWrapper;
 import com.zsw.simpletomcat.valves.ClinetIPLoggerValve;
 import com.zsw.simpletomcat.valves.HeaderLoggerValve;
 

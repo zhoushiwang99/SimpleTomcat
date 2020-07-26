@@ -14,10 +14,11 @@ import com.zsw.simpletomcat.session.StandardManager;
 public class BootStrap11 {
 	public static void main(String[] args) {
 		System.setProperty("catalina.base", System.getProperty("user.dir"));
+
+
+
 		HttpConnector connector = new HttpConnector();
-
 		Context context = new StandardContext();
-
 		Wrapper wrapper1 = new StandardWrapper();
 		wrapper1.setName("Primitive");
 		wrapper1.setServletClass("com.zsw.simpletomcat.servlet.PrimitiveServlet");
@@ -29,7 +30,6 @@ public class BootStrap11 {
 		Wrapper wrapper3 = new StandardWrapper();
 		wrapper3.setName("Hello");
 		wrapper3.setServletClass("com.zsw.simpletomcat.servlet.HelloServlet");
-
 
 		Wrapper wrapper4 = new StandardWrapper();
 		wrapper4.setName("Session");
@@ -63,7 +63,6 @@ public class BootStrap11 {
 		filterDef.setFilterClass("com.zsw.simpletomcat.filter.HelloFilter");
 
 		context.addFilterDef(filterDef);
-
 		Manager manager = new StandardManager();
 		context.setManager(manager);
 
@@ -79,6 +78,12 @@ public class BootStrap11 {
 			((Lifecycle) connector).start();
 			((Lifecycle) context).start();
 
+			System.out.println("============>>>>             <<<<============");
+			System.out.println("============>>>>             <<<<============");
+			System.out.println("============>>>>Simple Tomcat<<<<============");
+			System.out.println("============>>>>             <<<<============");
+			System.out.println("============>>>>             <<<<============");
+
 			// make the application wait until we press a key.
 			System.in.read();
 			((Lifecycle) context).stop();
@@ -86,4 +91,5 @@ public class BootStrap11 {
 			e.printStackTrace();
 		}
 	}
+
 }

@@ -49,7 +49,7 @@ public class StandardContextValve extends ValveBase {
 			new StaticResourceProcessor().process(request, response);
 			return;
 		}
-		response.setContext(context);
+//		response.setContext(context);
 		request.setContext(context);
 		wrapper.invoke(request, response);
 	}

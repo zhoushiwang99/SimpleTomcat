@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * @author zsw
@@ -15,13 +16,16 @@ public class HelloServlet extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+
+        String newSession = req.getParameter("newSession");
         System.out.println("get");
-        resp.getWriter().write("<h1>get hello</h1>");
+        PrintWriter writer = resp.getWriter();
+        writer.write("<h1>get hello</h1> \n");
         HttpSession session = req.getSession();
-        if (session.getAttribute("hello") == null) {
-            session.setAttribute("hello","hello");
-        }
-        System.out.println("session = " + session);
+        String hello = (String) session.getAttribute("hello");
+        writer.write("pre session.getAttribute(\"hello\") is " + hello + "\n");
+        session.setAttribute("hello", newSession);
+        writer.write("now session.getAttribute(\"hello\") is " + session.getAttribute("hello") + "\n");
     }
 
     @Override

@@ -3,6 +3,9 @@ package com.zsw.simpletomcat.startup;
 import com.zsw.simpletomcat.*;
 import com.zsw.simpletomcat.connector.http.HttpConnector;
 import com.zsw.simpletomcat.core.*;
+import com.zsw.simpletomcat.core.simple.SimpleContext;
+import com.zsw.simpletomcat.core.simple.SimpleContextMapper;
+import com.zsw.simpletomcat.core.simple.SimpleWrapper;
 
 /**
  * @author zsw

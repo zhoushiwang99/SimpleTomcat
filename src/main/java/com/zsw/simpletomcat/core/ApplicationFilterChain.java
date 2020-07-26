@@ -124,6 +124,7 @@ public class ApplicationFilterChain implements FilterChain {
             }catch (Exception e) {
                 e.printStackTrace();
             }
+            return;
         }
         servlet.service(request, response);
     }
