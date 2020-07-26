@@ -1,5 +1,6 @@
 package com.zsw.simpletomcat.connector.http;
 
+import com.zsw.simpletomcat.Context;
 import com.zsw.simpletomcat.connector.ResponseStream;
 import com.zsw.simpletomcat.connector.ResponseWriter;
 import com.zsw.simpletomcat.util.CookieTools;
@@ -13,6 +14,10 @@ import java.util.*;
 
 
 public class HttpResponse implements HttpServletResponse {
+
+  private HttpResponseFacade facade;
+
+  protected Context context;
 
   // the default buffer size
   private static final int BUFFER_SIZE = 1024;
@@ -91,6 +96,16 @@ public class HttpResponse implements HttpServletResponse {
 
   public String getContentType() {
     return contentType;
+  }
+
+
+  public Context getContext() {
+    return context;
+  }
+
+
+  public void setContext(Context context) {
+    this.context = context;
   }
 
 
@@ -203,8 +218,9 @@ public class HttpResponse implements HttpServletResponse {
    * Send the HTTP response headers, if this has not already occurred.
    */
   protected void sendHeaders() throws IOException {
-    if (isCommitted())
+    if (isCommitted()) {
       return;
+    }
     // Prepare a suitable output writer
     OutputStreamWriter osr = null;
     try {
@@ -462,13 +478,77 @@ public class HttpResponse implements HttpServletResponse {
   public void resetBuffer() {
   }
 
+  @Override
   public void sendError(int sc) throws IOException {
+      sendStatus(sc,null);
   }
 
+  private void sendStatus(int sc, String message) {
+    if (isCommitted()) {
+      return;
+    }
+    // Prepare a suitable output writer
+    OutputStreamWriter osr = null;
+    try {
+      osr = new OutputStreamWriter(getStream(), getCharacterEncoding());
+    } catch (UnsupportedEncodingException e) {
+      osr = new OutputStreamWriter(getStream());
+    }
+    final PrintWriter outputWriter = new PrintWriter(osr);
+    // Send the "Status:" header
+    outputWriter.print(this.getProtocol());
+    outputWriter.print(" ");
+    outputWriter.print(sc);
+    message = getStatusMessage(sc);
+    if (message != null) {
+      outputWriter.print(" ");
+      outputWriter.print(message);
+    }
+    outputWriter.print("\r\n");
+    // Send the content-length and content-type headers (if any)
+    if (getContentType() != null) {
+      outputWriter.print("Content-Type: " + getContentType() + "\r\n");
+    }
+    if (getContentLength() >= 0) {
+      outputWriter.print("Content-Length: " + getContentLength() + "\r\n");
+    }
+    // Send all specified headers (if any)
+    synchronized (headers) {
+      Iterator names = headers.keySet().iterator();
+      while (names.hasNext()) {
+        String name = (String) names.next();
+        ArrayList values = (ArrayList) headers.get(name);
+        Iterator items = values.iterator();
+        while (items.hasNext()) {
+          String value = (String) items.next();
+          outputWriter.print(name);
+          outputWriter.print(": ");
+          outputWriter.print(value);
+          outputWriter.print("\r\n");
+        }
+      }
+    }
+  }
+  public void addSessionCookie(Cookie cookie) {
+    if (isCommitted()) {
+      return;
+    }
+    String headerName = "Set-Cookie";
+    String header = CookieTools.getCookieHeaderValue(cookie);
+    addHeader(headerName, header);
+  }
+
+
+
+  @Override
   public void sendError(int sc, String message) throws IOException {
+    sendStatus(sc, message);
   }
 
+  @Override
   public void sendRedirect(String location) throws IOException {
+    this.headers.put("Location",new ArrayList<>(Collections.singletonList(location)));
+    sendStatus(HttpServletResponse.SC_MOVED_TEMPORARILY,location);
   }
 
   public void setBufferSize(int size) {
@@ -503,24 +583,22 @@ public class HttpResponse implements HttpServletResponse {
       return;
 //    if (included)
   //    return;     // Ignore any call from an included servlet
-    ArrayList values = new ArrayList();
+    ArrayList<String> values = new ArrayList<>();
     values.add(value);
     synchronized (headers) {
       headers.put(name, values);
     }
     String match = name.toLowerCase();
-    if (match.equals("content-length")) {
+    if ("content-length".equals(match)) {
       int contentLength = -1;
       try {
         contentLength = Integer.parseInt(value);
-      }
-      catch (NumberFormatException e) {
+      } catch (NumberFormatException e) {
         ;
       }
       if (contentLength >= 0)
         setContentLength(contentLength);
-    }
-    else if (match.equals("content-type")) {
+    } else if ("content-type".equals(match)) {
       setContentType(value);
     }
   }
@@ -576,5 +654,12 @@ public class HttpResponse implements HttpServletResponse {
   @Override
   public Collection<String> getHeaderNames() {
     return null;
+  }
+
+  public HttpServletResponse getResponse() {
+    if (facade == null) {
+      facade = new HttpResponseFacade(this);
+    }
+    return facade;
   }
 }

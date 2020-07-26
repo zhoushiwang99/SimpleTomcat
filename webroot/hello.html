@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>hello</title>
+</head>
+<body>
+
+<h4 id="hello"></h4>
+
+<form action="http://localhost:8080/test?hello=1&hello=3" method="post">
+    <input type="text" name="hello" value="1">
+    <input type="text" name="a" value="b">
+    <input type="text" name="c" value="2">
+    <button type="submit">submit</button>
+</form>
+
+<pre>A</pre>
+
+
+</body>
+
+<script>
+    document.getElementById("hello").innerText = "hello " + new Date().toLocaleString();
+</script>
+
+</html>

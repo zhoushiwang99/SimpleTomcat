@@ -1,15 +1,19 @@
 package com.zsw.simpletomcat.connector.http;
 
-import com.zsw.simpletomcat.processor.ServletProcessor;
-import com.zsw.simpletomcat.processor.StaticResourceProcessor;
 import com.zsw.simpletomcat.util.RequestUtil;
 import com.zsw.simpletomcat.util.StringManager;
+import com.zsw.simpletomcat.util.StringUtil;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.LinkedList;
+import java.util.Optional;
+import java.util.Queue;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * 用于将http请求封装成request和response并执行相应操作
@@ -17,17 +21,55 @@ import java.net.Socket;
  * @author zsw
  * @date 2020/07/12 11:54
  */
-public class HttpProcessor {
+public class HttpProcessor implements Runnable {
 
 	HttpRequest httpRequest;
 	HttpResponse httpResponse;
 	HttpRequestLine requestLine = new HttpRequestLine();
+
+
+	public HttpProcessor(HttpConnector connector) {
+		this.connector = connector;
+	}
+
+	/**
+	 * 表明此处理器可获得socket
+	 */
+	private boolean available;
+
+	/**
+	 * 表明是否有错误发生
+	 */
+	private boolean ok = true;
+
+	/**
+	 * 表明是否应该调用response的finishResponse()
+	 */
+	private boolean finishResponse = true;
+
+	/**
+	 * 用于唤醒其他处理器，当此处理器退出时用于唤醒其他处理器
+	 */
+	private static final Object threadSync = new Object();
+
+
+	/**
+	 * 与httpProcessor关联的连接器
+	 */
+	private HttpConnector connector;
+
+	/**
+	 * 表明此处理器是否停止
+	 */
+	private boolean stopped;
 
 	/**
 	 * The string manager for this package.
 	 */
 	protected StringManager sm =
 			StringManager.getManager("com.zsw.simpletomcat.connector.http");
+
+	private Socket socket;
 
 	public void process(Socket socket) {
 		SocketInputStream input = null;
@@ -38,72 +80,103 @@ public class HttpProcessor {
 
 			// 创建 HttpRequest
 			httpRequest = new HttpRequest(input);
-
 			// 创建 HttpResponse
 			httpResponse = new HttpResponse(output);
+
+			httpRequest.setResponse(httpResponse);
 			httpResponse.setRequest(httpRequest);
 
+
 			httpResponse.setHeader("Server", "LOVE LFR Container");
-			httpResponse.setDateHeader("Date",System.currentTimeMillis());
+			httpResponse.setDateHeader("Date", System.currentTimeMillis());
 
 			// 解析请求
 			parseRequest(input, output);
 			parseHeaders(input);
 
-			// 检查这个request请求的是 静态资源 or servlet
-			if (httpRequest.getRequestURI().startsWith("/servlet/")) {
-				ServletProcessor processor = new ServletProcessor();
-				processor.process(httpRequest, httpResponse);
-			} else {
-				StaticResourceProcessor processor = new StaticResourceProcessor();
-				processor.process(httpRequest, httpResponse);
-			}
-			// close the socket
+			this.connector.getContainer().invoke(httpRequest, httpResponse);
+
+//			// 检查这个request请求的是 静态资源 or servlet
+//			if (httpRequest.getRequestURI().startsWith("/servlet/")) {
+//				ServletProcessor processor = new ServletProcessor();
+//				processor.process(httpRequest, httpResponse);
+//			} else {
+//				StaticResourceProcessor processor = new StaticResourceProcessor();
+//				processor.process(httpRequest, httpResponse);
+//			}
+//			// close the socket
+
 			socket.close();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * HTTP协议格式可访问以下链接
+	 * <href>https://gitee.com/simple-one/CloudImage/raw/master/img/HTTP协议格式.png</href>
+	 *
+	 * @param input
+	 * @throws IOException
+	 * @throws ServletException
+	 */
 	private void parseHeaders(SocketInputStream input) throws IOException, ServletException {
-		while (true) {
-			HttpHeader header = new HttpHeader();
-			input.readHeader(header);
-			if (header.nameEnd == 0) {
-				if (header.valueEnd == 0) {
-					return;
-				} else {
-					throw new ServletException(sm.getString("httpProcessor.parseHeaders.colon"));
-				}
+		StringBuilder sb = new StringBuilder();
+
+		// 读取请求头，包括了post中的表单数据
+		int i;
+		while ((i = input.read()) > -1 && input.available() > 0) {
+			sb.append((char) i);
+		}
+		sb.append((char) i);
+
+		// 将读取的请求头字符串通过换行符分割成单行
+		Queue<String> headers = Stream.of(sb.toString().split("\r\n"))
+				.collect(Collectors.toCollection(LinkedList::new));
+
+		while (!headers.isEmpty()) {
+			String header = headers.poll();
+			if (StringUtil.isEmpty(header)) {// 读到空行则说明请求头读取完毕
+				break;
 			}
-			String name = new String(header.name,0,header.nameEnd);
-			String value = new String(header.value,0,header.valueEnd);
-			httpRequest.addHeader(name,value);
-			if("cookie".equals(name)) {
-				// parse cookies here
-				Cookie[] cookies = RequestUtil.parseCookieHeader(value);
-				for(int i = 0; i < cookies.length; i++) {
-					if(cookies[i].getName().equals("jsessionid")) {
-						if(!httpRequest.isRequestedSessionIdFromCookie()) {
-							httpRequest.setRequestedSessionId(cookies[i].getValue());
-							httpRequest.setRequestedSessionCookie(true);
-							httpRequest.setRequestedSessionURL(false);
-						}
-					}
-					httpRequest.addCookie(cookies[i]);
-				}
-			} else if("content-length".equals(name)) {
-				int n = -1;
-				try{
-					n = Integer.parseInt(value);
-				}catch (Exception e) {
-					throw new ServletException(sm.getString("httpProcessor.parseHeaders.contentLength"));
-				}
-				httpRequest.setContentLength(n);
+			String[] keyValue = header.split(": ");
+			try {
+				httpRequest.addHeader(keyValue[0], keyValue[1]);
+			} catch (Exception e) {
+				throw new ServletException(sm.getString("httpProcessor.parseHeaders.colon"));
 			}
-			else if("content-type".equals(name)) {
-				httpRequest.setContentType(value);
+		}
+
+		// 读到空行后还有数据则是post请求的表单数据
+		if (!headers.isEmpty()) {
+			httpRequest.setPostString(headers.poll());
+		}
+		// 处理部分请求头(content-length content-type cookie)
+		String contentLength = httpRequest.getHeader("content-length");
+		if (contentLength != null) {
+			try {
+				httpRequest.setContentLength(Integer.parseInt(contentLength));
+			} catch (Exception e) {
+				throw new ServletException(sm.getString("httpProcessor.parseHeaders.contentLength"));
 			}
+		}
+		httpRequest.setContentType(httpRequest.getHeader("content-type"));
+		httpRequest.setCharacterEncoding(RequestUtil.parseCharacterEncoding(httpRequest.getContentType()));
+
+		Cookie[] cookies = RequestUtil.parseCookieHeader(httpRequest.getHeader("cookie"));
+		Optional.ofNullable(cookies).ifPresent(cookies2 ->
+				Stream.of(cookies2).forEach(cookie -> httpRequest.addCookie(cookie))
+		);
+
+		if (!httpRequest.isRequestedSessionIdFromCookie() && cookies != null) {
+			Stream.of(cookies)
+					.filter(cookie -> "jsessionid".equals(cookie.getName().toLowerCase()))
+					.findAny()
+					.ifPresent(cookie -> {
+						httpRequest.setRequestedSessionId(cookie.getValue());
+						httpRequest.setRequestedSessionCookie(true);
+						httpRequest.setRequestedSessionURL(false);
+					});
 		}
 	}
 
@@ -255,4 +328,63 @@ public class HttpProcessor {
 
 	}
 
+
+	@Override
+	public void run() {
+		while (!stopped) {
+			Socket socket = await();
+			if (socket == null) {
+				continue;
+			}
+			try {
+				process(socket);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			// 执行完毕后放回处理器池
+			connector.recycleProcessor(this);
+		}
+		synchronized (threadSync) {
+			threadSync.notifyAll();
+		}
+	}
+
+	/**
+	 * 等待socket
+	 *
+	 * @return 返回此对象的socket
+	 */
+	private synchronized Socket await() {
+		while (!available) {
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		Socket socket = this.socket;
+		available = false;
+		notifyAll();
+		return socket;
+	}
+
+	/**
+	 * 从外部调用，用于分配socket，同时唤醒run()中的await()中的wait()，使方法继续执行下去
+	 * HttpConnector调用此方法，用于将socket分配给处理器进行处理，被唤醒后将传递的socket设置为成员变量
+	 * 同时将available设为true，使await()被唤醒后可以跳出循环
+	 *
+	 * @param socket
+	 */
+	synchronized void assign(Socket socket) {
+		while (available) {
+			try {
+				wait();
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+		this.socket = socket;
+		available = true;
+		notifyAll();
+	}
 }

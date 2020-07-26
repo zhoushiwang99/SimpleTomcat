@@ -1,8 +1,3 @@
-import javax.servlet.*;
-import javax.servlet.http.*;
-import java.io.*;
-import java.util.*;
-
 public class ModernServlet extends HttpServlet {
 
   public void init(ServletConfig config) {

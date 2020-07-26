@@ -296,14 +296,16 @@ public class SocketInputStream extends InputStream {
 			throws IOException {
 
 		// Recycling check
-		if (header.nameEnd != 0)
+		if (header.nameEnd != 0) {
 			header.recycle();
+		}
 
 		// Checking for a blank line
 		int chr = read();
 		if ((chr == CR) || (chr == LF)) { // Skipping CR
-			if (chr == CR)
+			if (chr == CR) {
 				read(); // Skipping LF
+			}
 			header.nameEnd = 0;
 			header.valueEnd = 0;
 			return;

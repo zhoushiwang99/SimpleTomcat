@@ -1,7 +1,5 @@
 package com.zsw.simpletomcat.startup;
 
-import com.zsw.simpletomcat.connector.http.HttpConnector;
-
 /**
  * 启动类
  *
@@ -9,8 +7,23 @@ import com.zsw.simpletomcat.connector.http.HttpConnector;
  * @date 2020/07/12 11:43
  */
 public class BootStrap {
-	public static void main(String[] args) {
+	/*public static void main(String[] args) {
 		HttpConnector connector = new HttpConnector();
 		connector.start();
-	}
+	}*/
+//	public static void main(String[] args) {
+//		HttpConnector connector = new HttpConnector();
+//		SimpleContainer container = new SimpleContainer();
+//		connector.setContainer(container);
+//		try {
+//			connector.initialize();
+//			connector.start();
+//
+//			// make the application wait until we press any key.
+//			System.in.read();
+//		}
+//		catch (Exception e) {
+//			e.printStackTrace();
+//		}
+//	}
 }
