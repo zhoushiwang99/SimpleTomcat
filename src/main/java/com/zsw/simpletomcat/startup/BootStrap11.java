@@ -78,11 +78,11 @@ public class BootStrap11 {
 			((Lifecycle) connector).start();
 			((Lifecycle) context).start();
 
-			System.out.println("============>>>>             <<<<============");
-			System.out.println("============>>>>             <<<<============");
-			System.out.println("============>>>>Simple Tomcat<<<<============");
-			System.out.println("============>>>>             <<<<============");
-			System.out.println("============>>>>             <<<<============");
+			System.out.println("============>>>>       ^^      <<<<============");
+			System.out.println("============>>>>       ^^      <<<<============");
+			System.out.println("============>>>> Simple Tomcat <<<<============");
+			System.out.println("============>>>>       ^^      <<<<============");
+			System.out.println("============>>>>       ^^      <<<<============");
 
 			// make the application wait until we press a key.
 			System.in.read();

@@ -276,7 +276,6 @@ public class HttpResponse implements HttpServletResponse {
     // Send a terminating blank line to mark the end of the headers
     outputWriter.print("\r\n");
     outputWriter.flush();
-
     committed = true;
   }
 

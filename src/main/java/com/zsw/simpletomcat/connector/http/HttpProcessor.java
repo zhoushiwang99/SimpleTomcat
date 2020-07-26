@@ -35,7 +35,7 @@ public class HttpProcessor implements Runnable {
 	/**
 	 * 表明此处理器可获得socket
 	 */
-	private boolean available;
+	private boolean available = false;
 
 	/**
 	 * 表明是否有错误发生

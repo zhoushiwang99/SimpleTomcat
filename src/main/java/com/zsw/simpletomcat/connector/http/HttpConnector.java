@@ -48,8 +48,11 @@ public class HttpConnector implements Runnable, Lifecycle {
 			}catch (Exception e){
 				continue;
 			}
-			HttpProcessor processor = new HttpProcessor(this);
-			processor.process(socket);
+			HttpProcessor processor = createProcessor();
+
+			// 唤醒processor
+			processor.assign(socket);
+			new Thread(processor).start();
 		}
 	}
 
